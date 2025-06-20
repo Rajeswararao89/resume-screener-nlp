@@ -4,39 +4,46 @@ import spacy
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-# Load spaCy model (already installed via requirements.txt)
-nlp = spacy.load("en_core_web_sm")
+# Load spaCy model
+try:
+    nlp = spacy.load("en_core_web_sm")
+except:
+    st.error("Failed to load spaCy model.")
+    st.stop()
 
-# -------------------- Utility Functions --------------------
-
-# Clean corrupted characters before NLP
-def safe_clean(text):
-    try:
-        text = text.encode('utf-8', errors='ignore').decode('utf-8', errors='ignore')
-        return ''.join([c if ord(c) < 128 else '' for c in text])
-    except:
-        return ""
-
-# Extract text from PDF
+# Safe PDF extraction
 def extract_text_from_pdf(uploaded_file):
     try:
         with fitz.open(stream=uploaded_file.read(), filetype="pdf") as doc:
             text = ""
             for page in doc:
-                page_text = page.get_text()
-                text += page_text
-            return safe_clean(text)
+                try:
+                    text += page.get_text()
+                except:
+                    continue
+            return text
     except Exception as e:
-        return None
+        return f"ERROR:: {str(e)}"
 
-# Extract keywords for scoring
+# Extract keywords from text
 def extract_keywords(text):
     try:
         doc = nlp(text.lower())
         return ' '.join([token.text for token in doc if token.is_alpha and not token.is_stop])
-    except:
-        return ""
+    except Exception as e:
+        return f"ERROR:: {str(e)}"
 
+# TF-IDF score
+def compute_match_score(resume_text, jd_text):
+    try:
+        vectorizer = TfidfVectorizer()
+        vectors = vectorizer.fit_transform([resume_text, jd_text])
+        score = cosine_similarity(vectors[0:1], vectors[1:2])
+        return round(score[0][0] * 100, 2)
+    except Exception as e:
+        return f"ERROR:: {str(e)}"
+
+# Top keyword extractor
 def get_top_keywords(text, top_n=10):
     try:
         doc = nlp(text.lower())
@@ -49,23 +56,12 @@ def get_top_keywords(text, top_n=10):
     except:
         return []
 
-def compute_match_score(resume_text, jd_text):
-    try:
-        vectorizer = TfidfVectorizer()
-        vectors = vectorizer.fit_transform([resume_text, jd_text])
-        score = cosine_similarity(vectors[0:1], vectors[1:2])
-        return round(score[0][0] * 100, 2)
-    except:
-        return 0
-
-# -------------------- Streamlit UI --------------------
-
-st.set_page_config(page_title="Resume Screener", layout="centered")
+# ---------------- UI ----------------
+st.set_page_config(page_title="Resume Screener")
 st.title("Ì≥Ñ Resume Screener using NLP")
+st.write("Upload your resume and job description to check your match score.")
 
-st.markdown("Upload your resume (PDF) and paste a job description to get match score and keyword insights.")
-
-uploaded_file = st.file_uploader("Ì≥Å Upload Resume (PDF)", type="pdf")
+uploaded_file = st.file_uploader("Ì≥é Upload Resume (PDF)", type="pdf")
 
 default_jd = """
 We are looking for a candidate with strong skills in Python, Machine Learning, Natural Language Processing (NLP),
@@ -74,33 +70,40 @@ TensorFlow or PyTorch, and REST API development. Understanding of data preproces
 job_description = st.text_area("Ì≥ù Paste Job Description", value=default_jd, height=200)
 
 if uploaded_file and job_description:
-    with st.spinner("Processing..."):
+    with st.spinner("Extracting and analyzing resume..."):
         resume_text = extract_text_from_pdf(uploaded_file)
 
-        if not resume_text:
-            st.error("‚ùå Could not extract text from PDF. Please try a different file.")
+        if resume_text.startswith("ERROR::"):
+            st.error(f"‚ùå Resume reading failed: {resume_text}")
             st.stop()
 
         resume_clean = extract_keywords(resume_text)
+
+        if resume_clean.startswith("ERROR::"):
+            st.error(f"‚ùå NLP processing failed: {resume_clean}")
+            st.stop()
+
         jd_clean = extract_keywords(job_description)
 
         score = compute_match_score(resume_clean, jd_clean)
 
+        if isinstance(score, str) and score.startswith("ERROR::"):
+            st.error(f"‚ùå Scoring failed: {score}")
+            st.stop()
+
         st.success(f"‚úÖ Resume Match Score: {score}%")
 
-        if score >= 75:
-            explanation = "Excellent match. Your resume strongly aligns with the job description."
-        elif score >= 50:
-            explanation = "Moderate match. Your resume covers many relevant areas."
-        else:
-            explanation = "Low match. Consider tailoring your resume to better fit the job description."
-
         st.markdown("### Ì≥å Explanation")
-        st.info(explanation)
+        if score >= 75:
+            st.info("Excellent match. Resume strongly aligns with the JD.")
+        elif score >= 50:
+            st.info("Moderate match. Covers many areas, but can be improved.")
+        else:
+            st.warning("Low match. Consider revising your resume for relevance.")
 
-        st.markdown("### Ì¥ç Top Keywords in Resume")
+        st.markdown("### Ì¥ç Resume Keywords")
         st.write(", ".join(get_top_keywords(resume_text)))
 
-        st.markdown("### Ì≥ã Top Keywords in Job Description")
+        st.markdown("### Ì≥ã JD Keywords")
         st.write(", ".join(get_top_keywords(job_description)))
 
