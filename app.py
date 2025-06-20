@@ -1,24 +1,46 @@
 import streamlit as st
+import os
+import fitz  # PyMuPDF
 import spacy
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-from pdfminer.high_level import extract_text
 
-# Load NLP model
+# Automatically download spaCy model on Streamlit Cloud
+os.system("python -m spacy download en_core_web_sm")
+
+# Load the spaCy model
 nlp = spacy.load("en_core_web_sm")
 
-# Job Description (editable)
+# Default Job Description
 DEFAULT_JD = """
 We are looking for a candidate with strong skills in Python, Machine Learning, Natural Language Processing (NLP),
 TensorFlow or PyTorch, and REST API development. Understanding of data preprocessing and model deployment is a plus.
 """
 
-# Extract clean keywords
+# Clean text from special chars (very important for spaCy)
+def safe_clean(text):
+    try:
+        text = text.encode('utf-8', errors='ignore').decode('utf-8', errors='ignore')
+        return ''.join([c if ord(c) < 128 else '' for c in text])
+    except:
+        return ""
+
+# Extract text from PDF
+def extract_text_from_pdf(uploaded_file):
+    try:
+        with fitz.open(stream=uploaded_file.read(), filetype="pdf") as doc:
+            text = ""
+            for page in doc:
+                text += page.get_text()
+            return safe_clean(text)
+    except Exception as e:
+        return None
+
+# NLP keyword extraction
 def extract_keywords(text):
     doc = nlp(text.lower())
     return ' '.join([token.text for token in doc if token.is_alpha and not token.is_stop])
 
-# Get top N keywords
 def get_top_keywords(text, top_n=10):
     doc = nlp(text.lower())
     keywords = [token.text for token in doc if token.is_alpha and not token.is_stop]
@@ -28,49 +50,48 @@ def get_top_keywords(text, top_n=10):
     sorted_keywords = sorted(freq.items(), key=lambda x: x[1], reverse=True)
     return [kw[0] for kw in sorted_keywords[:top_n]]
 
-# Match score
 def compute_match_score(resume_text, jd_text):
     vectorizer = TfidfVectorizer()
     vectors = vectorizer.fit_transform([resume_text, jd_text])
     score = cosine_similarity(vectors[0:1], vectors[1:2])
     return round(score[0][0] * 100, 2)
 
-# PDF text extractor
-def extract_text_from_pdf(uploaded_file):
-    return extract_text(uploaded_file)
+# Streamlit UI
+st.set_page_config(page_title="Resume Screener", layout="centered")
+st.title("Ì≥Ñ AI Resume Screener using NLP")
+st.write("Upload your resume and job description to compute skill match and see keyword insights.")
 
-# UI
-st.title("Ì∑† AI Resume Screener")
-st.write("Upload your resume and match it against a job description using NLP.")
-
-uploaded_file = st.file_uploader("Ì≥Ñ Upload your resume PDF", type="pdf")
-job_description = st.text_area("Ì≥ù Paste the Job Description here", value=DEFAULT_JD, height=200)
+uploaded_file = st.file_uploader("Upload your Resume (PDF only)", type="pdf")
+job_description = st.text_area("Paste the Job Description", value=DEFAULT_JD, height=200)
 
 if uploaded_file and job_description:
-    with st.spinner("Processing..."):
-        raw_resume = extract_text_from_pdf(uploaded_file)
-        clean_resume = extract_keywords(raw_resume)
-        clean_jd = extract_keywords(job_description)
+    with st.spinner("Extracting and analyzing..."):
+        resume_text = extract_text_from_pdf(uploaded_file)
+        if not resume_text:
+            st.error("‚ùå Could not read or clean the uploaded PDF.")
+            st.stop()
 
-        score = compute_match_score(clean_resume, clean_jd)
-        resume_keywords = get_top_keywords(raw_resume)
-        jd_keywords = get_top_keywords(job_description)
+        resume_clean = extract_keywords(resume_text)
+        jd_clean = extract_keywords(job_description)
 
-    st.success(f"‚úÖ Resume Match Score: {score}%")
+        score = compute_match_score(resume_clean, jd_clean)
 
-    if score >= 75:
-        explanation = "Excellent match. Resume strongly aligns with the job requirements."
-    elif score >= 50:
-        explanation = "Moderate match. Resume covers many important areas but can be improved."
-    else:
-        explanation = "Low match. Resume has few overlaps with the job description."
+        st.success(f"‚úÖ Resume Match Score: {score}%")
 
-    st.markdown("### Ì≥å Explanation")
-    st.info(explanation)
+        # Explanation
+        if score >= 75:
+            explanation = "Excellent match. Your resume strongly aligns with the job description."
+        elif score >= 50:
+            explanation = "Moderate match. Your resume covers many areas but could be improved."
+        else:
+            explanation = "Low match. Your resume has few overlaps with the job description."
 
-    st.markdown("### Ì¥ç Top Keywords in Resume")
-    st.write(", ".join(resume_keywords))
+        st.markdown("### Ì≥å Explanation")
+        st.info(explanation)
 
-    st.markdown("### Ì∑æ Key Job Description Keywords")
-    st.write(", ".join(jd_keywords))
+        st.markdown("### Ì¥ç Top Keywords in Resume")
+        st.write(", ".join(get_top_keywords(resume_text)))
+
+        st.markdown("### Ì≥ã Keywords in Job Description")
+        st.write(", ".join(get_top_keywords(job_description)))
 
