@@ -5,8 +5,7 @@ import spacy
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-# Automatically download spaCy model on Streamlit Cloud
-os.system("python -m spacy download en_core_web_sm")
+# Automatically download spaCy model on Streamlit Clouarning
 
 # Load the spaCy model
 nlp = spacy.load("en_core_web_sm")
