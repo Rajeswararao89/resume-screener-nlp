@@ -1,20 +1,20 @@
-# Ì∑† Resume Screener using NLP & Streamlit
+# Resume Screener using NLP & Streamlit
 
 An AI-powered web application that analyzes resume PDFs and matches them to job descriptions using Natural Language Processing (NLP). It extracts relevant keywords, computes a match score using TF-IDF and cosine similarity, and displays results interactively via a Streamlit web interface.
 
 ---
 
-## Ì∫Ä Features
+## Features
 
-- Ì≥Ñ Upload a PDF resume and compare it against any job description
-- Ì∑† Uses spaCy NLP pipeline for keyword extraction
-- Ì≥ä Computes match score using TF-IDF & cosine similarity
-- Ì¥ç Highlights top keywords from both resume and job description
-- Ì∂•Ô∏è Interactive, browser-based UI with Streamlit
+-  Upload a PDF resume and compare it against any job description
+-  Uses spaCy NLP pipeline for keyword extraction
+-  Computes match score using TF-IDF & cosine similarity
+-  Highlights top keywords from both resume and job description
+-  Interactive, browser-based UI with Streamlit
 
 ---
 
-## Ì≥Å Project Structure
+## Project Structure
 
 resume-screener/
 ‚îú‚îÄ‚îÄ app.py # Streamlit web app
@@ -25,7 +25,7 @@ resume-screener/
 
 ---
 
-## Ì∑∞ Tech Stack
+##  Tech Stack
 
 - Python
 - spaCy (`en_core_web_sm`)
@@ -35,7 +35,7 @@ resume-screener/
 
 ---
 
-## Ì∑™ How It Works
+##  How It Works
 
 1. User uploads a resume (PDF)
 2. Text is extracted from the file
@@ -46,14 +46,14 @@ resume-screener/
 
 ---
 
-## Ì∂•Ô∏è Run the Streamlit App Locally
+##  Run the Streamlit App Locally
 
 ### 1. Clone the repo
 
 ```bash
 git clone https://github.com/Rajeswararao89/resume-screener-nlp.git
 cd resume-screener-nlp
-Ì≥Ñ Sample Output (Terminal)
+ Sample Output (Terminal)
 =========== Resume Screening Result ===========
 
 Match Score: 78.5%
@@ -67,7 +67,11 @@ python, machine, learning, nlp, tensorflow, deployment, model, skills, data, api
 Explanation: Excellent match. Resume strongly aligns with job requirements.
 
 ===============================================
-Ì±§ Author
+
+## Screenshot of web app
+ ![image](https://github.com/user-attachments/assets/4ff4692b-cb32-4412-84d4-db281a9cd106) 
+
+Author
 Rajeswara Rao Jangiti
-Ì≥ç DevOps | NLP | AI Engineering
-GitHub ‚Ä¢ LinkedIn
+DevOps | NLP | AI Engineering
+LinkedIn: https://www.linkedin.com/in/rajeswararao-jangiti/
